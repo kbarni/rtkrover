@@ -66,10 +66,17 @@ This will create the executable `rtkrover_qt` inside the `build` directory.
 Once built, you can run the client from the project's root directory:
 
 ```sh
-./build/rtkrover_qt
+./build/rtkrover
 ```
 
 The application will read `config.ini`, initialize the GPS receiver, perform mountpoint detection if configured, and then start streaming data.
+
+## Running as a system service
+
+- Copy `rtkrover` to `/usr/local/bin/`
+- Rename and copy the config file to `/etc/rtkrover.ini`
+- Copy the provided `rtkrover.service` file to `/etc/systemd/system`
+- Run `sudo systemctl enable rtkrover`
 
 ## Configuration
 
