@@ -1,4 +1,5 @@
 #include "crtkrover.h"
+#include "outputhandler.h"
 #include <QDebug>
 
 CRTKRover::CRTKRover(const QString &configFile, QObject *parent)
@@ -7,6 +8,7 @@ CRTKRover::CRTKRover(const QString &configFile, QObject *parent)
     m_settings(nullptr),
     m_casterReader(nullptr),
     m_serialCom(nullptr),
+    _outputHandler(nullptr),
     m_gpsData()
 {
     loadConfig();
@@ -16,6 +18,7 @@ CRTKRover::~CRTKRover()
 {
     stop();
     delete m_settings;
+    delete _outputHandler;
 }
 
 void CRTKRover::loadConfig()
@@ -32,14 +35,33 @@ void CRTKRover::loadConfig()
     m_serialBaud = m_settings->value("serial/baud", 115200).toInt();
     m_gpsRate = m_settings->value("serial/frequency", 10).toInt();
 
-    m_readFromSerial = m_settings->value("output/read_from_serial", true).toBool();
-
     qDebug() << "Config loaded from" << m_configFile;
 }
 
 void CRTKRover::start()
 {
     qDebug() << "Starting services...";
+
+    // Setup OutputHandler
+    QString outputMethodStr = m_settings->value("output/output", "false").toString().toLower();
+    QString outputTypeStr = m_settings->value("output/output_type", "nmea").toString().toLower();
+    OutputHandler::OutputMethod method;
+    OutputHandler::OutputType type;
+
+    if (outputMethodStr == "socket") method = OutputHandler::OutputMethod::Socket;
+    else if (outputMethodStr == "file") method = OutputHandler::OutputMethod::File;
+    else if (outputMethodStr == "stdout") method = OutputHandler::OutputMethod::Stdout;
+    else method = OutputHandler::OutputMethod::False;
+
+    if (outputTypeStr == "csv") type = OutputHandler::OutputType::CSV;
+    else if (outputTypeStr == "json") type = OutputHandler::OutputType::JSON;
+    else type = OutputHandler::OutputType::NMEA;
+
+    if (method != OutputHandler::OutputMethod::False) {
+        QString outFile = m_settings->value("output/filename", "output.txt").toString();
+        int outPort = m_settings->value("output/port", 1298).toInt();
+        _outputHandler = new OutputHandler(method, type, outFile, outPort, this);
+    }
 
     m_casterReader = new CasterReader(this);
     m_serialCom = new SerialCom(this);
@@ -53,6 +75,10 @@ void CRTKRover::start()
 
     // Connect the NMEA output from serial to our handler
     connect(m_serialCom, &SerialCom::got_NMEA, this, &CRTKRover::onNmeaMessage);
+
+    if (_outputHandler) {
+        connect(m_serialCom, &SerialCom::got_NMEA, _outputHandler, &OutputHandler::processNmeaData);
+    }
 
     // Start serial communication
     m_serialCom->init(m_serialPort, m_serialBaud, m_gpsRate);
@@ -91,7 +117,7 @@ void CRTKRover::stop()
 void CRTKRover::onNmeaMessage(const QString &message)
 {
     m_gpsData.parse_NMEA(message);
-    m_gpsData.print();
+    // m_gpsData.print(); // This is now handled by OutputHandler if configured to stdout
 
     // Check if we have a fix and haven't detected the mount point yet
     if (m_gpsData.hasFix() && !m_mountPointDetected) {

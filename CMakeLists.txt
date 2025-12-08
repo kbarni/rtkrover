@@ -14,6 +14,7 @@ qt_add_executable(rtkrover
     casterreader.h casterreader.cpp
     serialcom.h serialcom.cpp
     gpsdataparser.h gpsdataparser.cpp
+    outputhandler.h outputhandler.cpp
     crc24q.h
     Todo.md
     README.md

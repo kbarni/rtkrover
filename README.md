@@ -95,7 +95,8 @@ port = /dev/ttyACM0
 baud = 115200
 
 [output]
-read_from_serial = true
+output = stdout
+output_type = NMEA
 ```
 
 - **[ntrip]**: Settings for the NTRIP caster.
@@ -106,7 +107,12 @@ read_from_serial = true
     - `port`: The device path (e.g., `/dev/ttyACM0` on Linux).
     - `baud`: The baud rate for the serial connection.
 - **[output]**:
-    - `read_from_serial`: If `true`, the application will read NMEA data from the GPS and display a live status screen in the console.
+    - `output`: defines the way of outputting data:
+        - `none`: no output
+        - `stdout`: outputs the position data to the stdout. It can be read in another app from `stdin`
+        - `socket`: position is sent to a socket on port defined in `port`
+        - `file`: position is written to a file defined in `filename`
+    - `output_type`: defines output type: `NMEA` (undecoded NMEA packets), `CSV` or `JSON`.
 
 ---
 

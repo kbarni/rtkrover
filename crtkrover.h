@@ -8,6 +8,8 @@
 #include "serialcom.h"
 #include "gpsdataparser.h"
 
+class OutputHandler; // Forward declaration
+
 class CRTKRover : public QObject
 {
     Q_OBJECT
@@ -21,12 +23,12 @@ public:
     void stop();
 
 private slots:
+    void onGpsFixAcquired();
     void onNmeaMessage(const QString& message);
-    void onGpsFixAcquired(); // New slot
 
 private:
     void loadConfig();
-    QString detectMountPoint(); // Keep this private helper function
+    QString detectMountPoint();
 
     QSettings* m_settings;
     QString m_configFile;
@@ -43,13 +45,13 @@ private:
     int m_serialBaud;
     int m_gpsRate;
 
-    bool m_readFromSerial;
-    bool m_mountPointDetected = false; // New flag
+    bool m_mountPointDetected = false;
 
     GpsData m_gpsData;
 
     CasterReader* m_casterReader;
     SerialCom* m_serialCom;
+    OutputHandler* _outputHandler = nullptr;
 };
 
 #endif // CRTKROVER_H
