@@ -77,6 +77,64 @@ void GpsData::print() const {
     qDebug().noquote() << "============================================================";
 }
 
+UtmCoords GpsData::convertToUtm() const {
+    UtmCoords utm = {0.0, 0.0, 0, 'N'};
+
+    if (_latitude == 0.0 && _longitude == 0.0) {
+        return utm; // Return zeroed UTM if lat/lon are zero
+    }
+
+    // WGS84 constants
+    const double a = 6378137.0;             // Semi-major axis
+    const double f = 1.0 / 298.257223563;   // Flattening
+    const double b = a * (1 - f);           // Semi-minor axis
+    const double e2 = (a*a - b*b) / (a*a);  // First eccentricity squared
+    const double e_prime_sq = (a*a - b*b) / (b*b); // Second eccentricity squared
+    const double k0 = 0.9996;               // UTM scale factor
+
+    // Convert latitude and longitude to radians
+    const double latRad = _latitude * M_PI / 180.0;
+    const double lonRad = _longitude * M_PI / 180.0;
+
+    // Calculate UTM zone
+    utm.zone = floor((_longitude + 180.0) / 6.0) + 1;
+
+    // Calculate central meridian
+    const double lonOrigin = (utm.zone * 6) - 183;
+    const double lonOriginRad = lonOrigin * M_PI / 180.0;
+
+    // Calculate intermediate values
+    const double N = a / sqrt(1 - e2 * sin(latRad) * sin(latRad));
+    const double T = tan(latRad) * tan(latRad);
+    const double C = e_prime_sq * cos(latRad) * cos(latRad);
+    const double A = cos(latRad) * (lonRad - lonOriginRad);
+
+    // Calculate Meridional Arc (M)
+    const double M = a * ((1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256) * latRad
+                        - (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024) * sin(2*latRad)
+                        + (15*e2*e2/256 + 45*e2*e2*e2/1024) * sin(4*latRad)
+                        - (35*e2*e2*e2/3072) * sin(6*latRad));
+
+    // Calculate Easting
+    utm.easting = k0 * N * (A + (1 - T + C) * A*A*A/6
+                          + (5 - 18*T + T*T + 72*C - 58*e_prime_sq) * A*A*A*A*A/120) + 500000.0;
+
+    // Calculate Northing
+    utm.northing = k0 * (M + N * tan(latRad) * (A*A/2
+                                               + (5 - T + 9*C + 4*C*C) * A*A*A*A/24
+                                               + (61 - 58*T + T*T + 600*C - 330*e_prime_sq) * A*A*A*A*A*A/720));
+
+    // Adjust Northing for Southern Hemisphere
+    if (_latitude < 0) {
+        utm.northing += 10000000.0; // Add 10,000,000 meters for Southern Hemisphere
+        utm.hemisphere = 'S';
+    } else {
+        utm.hemisphere = 'N';
+    }
+
+    return utm;
+}
+
 bool GpsData::validate_checksum(const QString& sentence) {
     int star_pos = sentence.indexOf('*');
     if (star_pos == -1 || star_pos > sentence.length() - 3) {

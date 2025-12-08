@@ -6,6 +6,13 @@
 #include <QDebug>
 #include <cmath>
 
+struct UtmCoords {
+    double easting;
+    double northing;
+    int zone;
+    char hemisphere; // 'N' for Northern, 'S' for Southern
+};
+
 class GpsData {
 public:
     GpsData();
@@ -30,6 +37,9 @@ public:
     double speedMs() const;
     double headingDegrees() const;
     double hdop() const;
+
+    // --- UTM Conversion ---
+    UtmCoords convertToUtm() const;
 
     // --- Print method ---
     void print() const;
