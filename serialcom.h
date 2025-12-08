@@ -17,6 +17,7 @@ public:
     void init(const QString& portName, int baudRate, int gpsRate);
     void start();
     void stop();
+    static QString autodetect();
 
     int getGpsVersion();
     bool setRate(int rate);

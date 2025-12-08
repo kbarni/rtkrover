@@ -38,6 +38,27 @@ void SerialCom::init(const QString &portName, int baudRate, int gpsRate)
 
 }
 
+QString SerialCom::autodetect()
+{
+    QList<QSerialPortInfo> spil = QSerialPortInfo::availablePorts();
+    if(spil.length()==0){   //Check if we got at least one serial port
+        qDebug()<<"Serial: Error! No serial devices found";
+        return "";
+    }
+    for(auto spi:spil)     //Search for u-blox serial ports
+        if(spi.description().contains("u-blox")){
+            qDebug()<<"Serial: u-blox receiver found on"<<spi.portName();
+            return(spi.portName());
+        }
+    qDebug()<<"Serial: No \"u-blox\" ports found...Searching generic ports";
+    for(auto spi:spil)     //Otherwise choose the first valid serial port
+        if(spi.description()!=""){
+            qDebug()<<"Serial: using serial device"<<spi.portName();
+            return(spi.portName());
+        }
+    return "";
+}
+
 void SerialCom::start()
 {
     connect(m_serial, &QSerialPort::readyRead, this, &SerialCom::handleReadyRead);

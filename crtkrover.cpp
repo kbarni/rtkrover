@@ -44,6 +44,10 @@ void CRTKRover::start()
     m_casterReader = new CasterReader(this);
     m_serialCom = new SerialCom(this);
 
+    // Autodetect serial port if set to auto.
+    if(m_serialPort=="auto")
+        m_serialPort = SerialCom::autodetect();
+
     // Connect the data pipeline: Caster -> Serial
     connect(m_casterReader, &CasterReader::rtcmPacketReady, m_serialCom, &SerialCom::writeRtcmPacket);
 
